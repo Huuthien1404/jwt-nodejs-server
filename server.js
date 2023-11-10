@@ -7,7 +7,7 @@ const userRoute = require("./routes/userRoute");
 const app = express();
 
 app.use(cors({
-    origin: "http://localhost:3000",
+    origin: "https://jwt-reactjs-client.vercel.app",
     credentials: true
 }));
 app.use(cookieParser());
