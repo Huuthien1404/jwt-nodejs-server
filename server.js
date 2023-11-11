@@ -4,8 +4,10 @@ const cookieParser = require("cookie-parser");
 require("dotenv").config();
 const authRoute = require("./routes/authRoute");
 const userRoute = require("./routes/userRoute");
+const path = require("path");
 const app = express();
 
+app.use(express.static(path.join(__dirname, "public")));
 app.use(cors({
     origin: "https://jwt-reactjs-client.vercel.app",
     credentials: true
