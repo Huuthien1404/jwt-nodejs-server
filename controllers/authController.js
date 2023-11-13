@@ -109,8 +109,8 @@ const authController = {
     });
   },
   logoutUser: (req, res) => {
-    res.clearCookie("refreshToken");
-    refreshTokens = refreshTokens.filter(token !== req.cookies.refreshToken);
+    // res.clearCookie("refreshToken");
+    // refreshTokens = refreshTokens.filter(token !== req.cookies.refreshToken);
     return res.status(200).json("logged out successfully");
   },
   loggedInUser: (req, res) => {
