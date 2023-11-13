@@ -22,12 +22,13 @@ const authController = {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(req.body.password, salt);
       await db.query(
-        'INSERT INTO public."Users"(username, password, email, admin) VALUES ($1, $2, $3, $4);',
+        'INSERT INTO public."Users"(username, password, email, admin, status) VALUES ($1, $2, $3, $4, $5);',
         [
           `${req.body.username}`,
           `${hashedPassword}`,
           `${req.body.email}`,
           `${req.body.admin}`,
+          "offline",
         ]
       );
       return res.status(200).json("register successfully");
@@ -43,7 +44,7 @@ const authController = {
       },
       process.env.JWT_ACCESS_KEY,
       {
-        expiresIn: "300s",
+        expiresIn: "900s",
       }
     );
   },
@@ -90,10 +91,11 @@ const authController = {
   requestRefreshToken: (req, res) => {
     const refreshToken = req.cookies.refreshToken;
     if (!refreshToken) return res.status(401).json("Authentication required");
-    if (!refreshTokens.includes(refreshToken)) return res.status(403).json("refresh token is not valid");
+    if (!refreshTokens.includes(refreshToken))
+      return res.status(403).json("refresh token is not valid");
     jwt.verify(refreshToken, process.env.JWT_REFRESH_KEY, (err, user) => {
       if (err) return res.status(403).json("refresh token is not valid");
-      refreshTokens = refreshTokens.filter(token => token !== refreshToken);
+      refreshTokens = refreshTokens.filter((token) => token !== refreshToken);
       const newAccessToken = authController.generateAccessToken(user);
       const newRefreshToken = authController.generateRefreshToken(user);
       refreshTokens.push(newRefreshToken);
@@ -101,10 +103,10 @@ const authController = {
         httpOnly: true,
         secure: true,
         path: "/",
-        sameSite: "strict"
+        sameSite: "strict",
       });
-      res.status(200).json({newAccessToken});
-    })
+      res.status(200).json({ newAccessToken });
+    });
   },
   logoutUser: (req, res) => {
     res.clearCookie("refreshToken");
@@ -114,11 +116,25 @@ const authController = {
   loggedInUser: (req, res) => {
     const token = req.headers.token;
     if (!token) return res.status(401).json("Authentication required");
-    jwt.verify(token.split(" ")[1], process.env.JWT_ACCESS_KEY, (err, user) => {
-      if (err) return res.status(403).json("Token is not valid");
-      return res.status(200).json("Logged in");
-    })
-  }
+    jwt.verify(
+      token.split(" ")[1],
+      process.env.JWT_ACCESS_KEY,
+      async (err, user) => {
+        if (err) return res.status(403).json("Token is not valid");
+        try {
+          const userDB = await db.query(
+            'select "userId" from public."Users" where "username" = $1',
+            [`${user.username}`]
+          );
+          if (userDB.rowCount === 0)
+            return res.status(403).json("Token is not valid");
+          return res.status(200).json("Logged in");
+        } catch (error) {
+          return res.status(500).json(error);
+        }
+      }
+    );
+  },
 };
 
 module.exports = authController;
